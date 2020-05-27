@@ -2,6 +2,8 @@ import json
 import re
 import pandas as pd
 from copy import copy
+from pathlib import Path
+import sys
 
 
 class Mapper:
@@ -20,6 +22,28 @@ class Mapper:
         s = re.sub(r'([^\s])\s+$', r'\1', s)
         s = re.sub(r'\s+', r' ', s)
         return s.upper()
+
+    @staticmethod
+    def mapping_dir() -> Path:
+        p: Path = Path("./mapping")
+        if p.is_dir():
+            return p.resolve()
+        p = Path(sys.argv[0]).resolve().parent.joinpath("mapping")
+        if p.is_dir():
+            return p
+        return Path(".").resolve()
+
+    @staticmethod
+    def mapping_file(filename: str) -> Path:
+        p: Path = Mapper.mapping_dir()
+        if p is not None:
+            return p.joinpath(filename).resolve()
+        else:
+            return Path(filename)
+
+    @staticmethod
+    def mapping_filename(filename: str) -> str:
+        return str(Mapper.mapping_file(filename))
 
     def __init__(self):
         Mapper._all.append(self)
@@ -86,7 +110,7 @@ class JSONMapper(Mapper):
 
     def __init__(self, slug: str):
         self._slug = str(slug)
-        self._filename = 'mapping/' + self._slug + '.json'
+        self._filename = Mapper.mapping_filename(self._slug + '.json')
         super().__init__()
 
     def _load(self):
@@ -176,7 +200,7 @@ class DataFrameMapper(Mapper):
 class CSVMapper(DataFrameMapper):
     def __init__(self, slug: str):
         self._slug: str = str(slug)
-        self._filename: str = 'mapping/' + self._slug + '.csv'
+        self._filename: str = Mapper.mapping_filename(self._slug + '.csv')
         super().__init__()
 
     def _load_dataframe(self):
@@ -189,7 +213,7 @@ class CSVMapper(DataFrameMapper):
 class ExcelMapper(DataFrameMapper):
     def __init__(self, slug: str):
         self._slug: str = str(slug)
-        self._filename: str = 'mapping/' + self._slug + '.xlsx'
+        self._filename: str = Mapper.mapping_filename(self._slug + '.xlsx')
         super().__init__()
 
     def _load_dataframe(self):
