@@ -1,1 +1,1 @@
-from .mapper import Mapper, JSONMapper, DataFrameMapper, ExcelMapper, CSVMapper
+from .mapper import Mapper, DataFrameMapper, ExcelMapper, CSVMapper
