@@ -1,6 +1,8 @@
 import pandas as pd
+import numpy as np
 from pathlib import Path
 import sys
+import math
 
 
 class Mapper2:
@@ -91,15 +93,16 @@ class Mapper2:
         assert isinstance(self._columns, list)
         assert len(self._columns) > 0
 
+        self._columnmap = {self._cleanup(x): x for x in self._columns}
+        if self._ignore_case:
+            self._df.rename(columns={x: self._cleanup(x) for x in self._columns}, inplace=True)
+            self._columns = [self._cleanup(x) for x in self._columns]
+
         self._keycolumn: str = self._columns[0]
         ix: pd.Index = pd.Index(data=[self._cleanup(x) for x in self._df[self._keycolumn]])
         if not ix.is_unique:
             raise KeyError(f"Non-unique key column \"{self._keycolumn}\" in Mapper {str(self._path)}")
         self._df.set_index(keys=ix, inplace=True)
-
-        self._columnmap = {self._cleanup(x): x for x in self._columns}
-        if self._ignore_case:
-            self._df.rename(columns={x: self._cleanup(x) for x in self._columns}, inplace=True)
 
         self._defaultgetcolumn = self._cleanup(self._columns[0] if len(self._columns) == 1 else self._columns[1])
 
@@ -122,16 +125,50 @@ class Mapper2:
         else:
             raise NotImplementedError(f"Can't save {str(self._path)}, unsupported format")
 
-    def get(self, key: str, col: str = None, defaultvalue: str = None):
-        key = self._cleanup(key)
-        col = self._defaultgetcolumn if col is None else self._cleanup(col)
+    def get(self, key: str, col: str = None, defaultvalue: str = None) -> str:
+        _key = self._cleanup(key)
+        _col = self._defaultgetcolumn if col is None else self._cleanup(col)
         try:
-            return str(self._df.loc[key, col])
+            return str(self._df.loc[_key, _col])
         except KeyError as e:
             if defaultvalue is not None:
-                self._df.loc[key, col] = defaultvalue
+                self._df.loc[_key, _col] = defaultvalue
                 self._is_changed = True
                 return defaultvalue
             else:
-                raise KeyError(f"[{key}, {col}] not found") from e
+                raise KeyError(f"[{_key}, {_col}] not found") from e
+
+    def touch(self, key: str, col: str = None, defaultvalue=None) -> bool:
+        _key = self._cleanup(key)
+        _col = self._defaultgetcolumn if col is None else self._cleanup(col)
+        if _key in self._df.index and _col in self._columns:
+            s = self._df.loc[_key, _col]
+            if not (type(s) is float and math.isnan(s)):
+                return True
+            elif defaultvalue is None:
+                return False
+            else:
+                self._df.loc[_key, _col] = str(defaultvalue)
+                return True
+        elif defaultvalue is None:
+            return False
+        else:
+            try:
+                if _col not in self._columns:
+                    self._df.insert(loc=len(self._df.columns), column=_col, value=[np.nan] * self._df.index.size)
+                    self._columns.append(_col)
+                    self._columnmap[_col] = col
+
+                if _key not in self._df.index:
+                    sr: pd.Series = pd.Series(index=self._columns, name=_key)
+                    sr[_col] = str(defaultvalue)
+                    sr[self._keycolumn] = key  # original, not cleaned up
+                    self._df = self._df.append(other=sr, verify_integrity=True)
+                else:
+                    self._df.loc[_key, _col] = str(defaultvalue)
+
+                self._is_changed = True
+                return True
+            except KeyError:
+                return False
 

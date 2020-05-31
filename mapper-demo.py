@@ -30,6 +30,26 @@ def _main():
                 s = f"{type(e)} {e}"
             print(f"m1.get(\"{key}\",\"{col}\")=\"{s}\"")
 
+    print("\n====\nTesting touch with no default value")
+    for mname, m in {"m0": m0, "m1": m1}.items():
+        for key in ['Vincent', 'Mary']:
+            b = m.touch(key)
+            print(f"{mname}.touch(\"{key}\")={b}")
+            for col in ['Species', 'Sex']:
+                b = m.touch(key, col)
+                print(f"{mname}.touch(\"{key}\")={b}")
+
+    print("\n====\nTesting touch with default value")
+    for mname, m in {"m0": m0, "m1": m1}.items():
+        for key, col, defaultvalue in [
+            ('Vincent', 'Species', 'Lamb'),
+            ('Vincent', 'Sex', 'Male'),
+            ('Mary', 'Species', 'Rat'),
+            ('Mary', 'Sex', 'Female')
+        ]:
+            b = m.touch(key, col, defaultvalue)
+            print(f"{mname}.touch(\"{key}\",\"{col}\",\"{defaultvalue}\",)={b}")
+
     Mapper2.flush_all()
 
 
