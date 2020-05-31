@@ -1,6 +1,7 @@
 from piggypandas import Mapper2
 import shutil
 
+
 def _main():
     shutil.copy('mapping/demomapping.xlsx', 'tmp/demomapping.xlsx')
     m0: Mapper2 = Mapper2('tmp/demomapping.xlsx', columns=['Name'], ignore_case=False)
@@ -23,7 +24,7 @@ def _main():
 
     print("\n====\nTesting get for case-insensitive mapper")
     for key in ['Vincent', 'VINCENT', 'ViNcEnT']:
-        for col in ['Colour', 'colour', 'ColouR']:
+        for col in ['Colour', 'colour', 'ColoUr']:
             try:
                 s = m1[col][key]
             except BaseException as e:
