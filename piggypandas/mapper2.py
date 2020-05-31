@@ -3,6 +3,7 @@ import numpy as np
 from pathlib import Path
 import sys
 import math
+from typing import Optional
 
 
 class Mapper2:
@@ -50,7 +51,7 @@ class Mapper2:
     def _mapping_filename(slug: str) -> str:
         return str(Mapper2._mapping_file(slug))
 
-    def __init__(self, slug: str, columns: list, sheet_name: str ='DATA', ignore_case: bool = False):
+    def __init__(self, slug: str, columns: list, sheet_name: str = 'DATA', ignore_case: bool = True):
         Mapper2._all.append(self)
         self._ignore_case: bool = ignore_case
         self._columns: list = columns
@@ -63,7 +64,7 @@ class Mapper2:
         return Mapper2.cleanup(s, self._ignore_case)
 
     def _load(self):
-        self._df: pd.DataFrame = None
+        self._df: pd.DataFrame
         if self._path.is_file():
             if self._path.suffix in ['.csv']:
                 self._df = pd.read_csv(str(self._path), index_col=False)
@@ -80,7 +81,8 @@ class Mapper2:
                 missing_columns: list = [x for x in self_columns_cmp.keys() if x not in df_columns_cmp.keys()]
                 if len(missing_columns) > 0:
                     raise ValueError(f"Missing columns {','.join(missing_columns)} for Mapper {str(self._path)}")
-                added_columns: list = [df_columns_cmp[x] for x in df_columns_cmp.keys() if x not in self_columns_cmp.keys()]
+                added_columns: list = [df_columns_cmp[x] for x in df_columns_cmp.keys()
+                                       if x not in self_columns_cmp.keys()]
                 self._columns.extend(added_columns)
             else:
                 self._columns = self._df.columns.values
@@ -125,7 +127,7 @@ class Mapper2:
         else:
             raise NotImplementedError(f"Can't save {str(self._path)}, unsupported format")
 
-    def get(self, key: str, col: str = None, defaultvalue: str = None) -> str:
+    def _do_get(self, key: str, col: Optional[str], defaultvalue: Optional[str]) -> str:
         _key = self._cleanup(key)
         _col = self._defaultgetcolumn if col is None else self._cleanup(col)
         try:
@@ -138,7 +140,46 @@ class Mapper2:
             else:
                 raise KeyError(f"[{_key}, {_col}] not found") from e
 
-    def touch(self, key: str, col: str = None, defaultvalue=None) -> bool:
+    def get(self, key: str, defaultvalue: Optional[str] = None) -> str:
+        return self._do_get(key=key, col=None, defaultvalue=defaultvalue)
+
+    def getc(self, key: str, col: str, defaultvalue: Optional[str] = None) -> str:
+        return self._do_get(key=key, col=col, defaultvalue=defaultvalue)
+
+    def _do_set(self, key: str, col: Optional[str], value: str) -> bool:
+        _key = self._cleanup(key)
+        _col = self._defaultgetcolumn if col is None else self._cleanup(col)
+        if _key in self._df.index and _col in self._columns:
+            self._df.loc[_key, _col] = str(value)
+            self._is_changed = True
+            return True
+        else:
+            try:
+                if _col not in self._columns:
+                    self._df.insert(loc=len(self._df.columns), column=_col, value=[np.nan] * self._df.index.size)
+                    self._columns.append(_col)
+                    self._columnmap[_col] = col
+
+                if _key not in self._df.index:
+                    sr: pd.Series = pd.Series(index=self._columns, name=_key)
+                    sr[_col] = str(value)
+                    sr[self._keycolumn] = key  # original, not cleaned up
+                    self._df = self._df.append(other=sr, verify_integrity=True)
+                else:
+                    self._df.loc[_key, _col] = str(value)
+
+                self._is_changed = True
+                return True
+            except KeyError:
+                return False
+
+    def set(self, key: str, value: str) -> bool:
+        return self._do_set(key=key, col=None, value=value)
+
+    def setc(self, key: str, col: str, value: str) -> bool:
+        return self._do_set(key=key, col=col, value=value)
+
+    def _do_touch(self, key: str, col: Optional[str], defaultvalue: Optional[str]) -> bool:
         _key = self._cleanup(key)
         _col = self._defaultgetcolumn if col is None else self._cleanup(col)
         if _key in self._df.index and _col in self._columns:
@@ -153,22 +194,36 @@ class Mapper2:
         elif defaultvalue is None:
             return False
         else:
-            try:
-                if _col not in self._columns:
-                    self._df.insert(loc=len(self._df.columns), column=_col, value=[np.nan] * self._df.index.size)
-                    self._columns.append(_col)
-                    self._columnmap[_col] = col
+            return self._do_set(key=key, col=col, value=defaultvalue)
 
-                if _key not in self._df.index:
-                    sr: pd.Series = pd.Series(index=self._columns, name=_key)
-                    sr[_col] = str(defaultvalue)
-                    sr[self._keycolumn] = key  # original, not cleaned up
-                    self._df = self._df.append(other=sr, verify_integrity=True)
-                else:
-                    self._df.loc[_key, _col] = str(defaultvalue)
+    def touch(self, key: str, defaultvalue: str = None) -> bool:
+        return self._do_touch(key=key, col=None, defaultvalue=defaultvalue)
 
-                self._is_changed = True
-                return True
-            except KeyError:
-                return False
+    def touchc(self, key: str, col: str, defaultvalue: str = None) -> bool:
+        return self._do_touch(key=key, col=col, defaultvalue=defaultvalue)
+
+    def __getitem__(self, col: str) -> "_Indexer":
+        return _Indexer(mapper=self, col=col)
+
+
+class _Indexer:
+
+    def __init__(self, mapper: Mapper2, col: str):
+        self._mapper = mapper
+        self._col = col
+
+    def get(self, key: str, defaultvalue: Optional[str] = None) -> str:
+        return self._mapper.getc(key=key, col=self._col, defaultvalue=defaultvalue)
+
+    def set(self, key: str, value: str) -> bool:
+        return self._mapper.setc(key=key, col=self._col, value=value)
+
+    def touch(self, key: str, defaultvalue: Optional[str] = None) -> bool:
+        return self._mapper.touchc(key=key, col=self._col, defaultvalue=defaultvalue)
+
+    def __getitem__(self, key: str) -> str:
+        return self._mapper.getc(key=key, col=self._col)
+
+    def __setitem__(self, key: str, value: str):
+        return self._mapper.setc(key=key, col=self._col, value=value)
 
