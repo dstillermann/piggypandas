@@ -96,7 +96,12 @@ class Mapper2:
         if not ix.is_unique:
             raise KeyError(f"Non-unique key column \"{self._keycolumn}\" in Mapper {str(self._path)}")
         self._df.set_index(keys=ix, inplace=True)
-        self._defaultgetcolumn = self._columns[0] if len(self._columns) == 1 else self._columns[1]
+
+        self._columnmap = {self._cleanup(x): x for x in self._columns}
+        if self._ignore_case:
+            self._df.rename(columns={x: self._cleanup(x) for x in self._columns}, inplace=True)
+
+        self._defaultgetcolumn = self._cleanup(self._columns[0] if len(self._columns) == 1 else self._columns[1])
 
     @property
     def is_changed(self) -> bool:
@@ -119,14 +124,14 @@ class Mapper2:
 
     def get(self, key: str, col: str = None, defaultvalue: str = None):
         key = self._cleanup(key)
-        col = self._defaultgetcolumn if col is None else col
+        col = self._defaultgetcolumn if col is None else self._cleanup(col)
         try:
             return str(self._df.loc[key, col])
-        except KeyError:
-            if defaultvalue is None:
+        except KeyError as e:
+            if defaultvalue is not None:
                 self._df.loc[key, col] = defaultvalue
                 self._is_changed = True
                 return defaultvalue
             else:
-                raise KeyError(f"[{key}, {col}] not found")
+                raise KeyError(f"[{key}, {col}] not found") from e
 
