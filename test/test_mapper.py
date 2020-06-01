@@ -1,6 +1,5 @@
 import unittest
 from piggypandas import Mapper2
-import shutil
 import pandas as pd
 
 
@@ -25,17 +24,19 @@ class TestMapperBase(unittest.TestCase):
         super().tearDown()
 
 
-
 class TestMapperReadOnlyOperations(TestMapperBase):
 
-    def test_get_nodefaultvalue(self):
+    def test_get_no_defaultvalue(self):
         for m in [self._mapper_cs, self._mapper_ci]:
             self.assertEqual(m.get('Vincent'), 'Lamb')
             self.assertEqual(m.getc('Murray', 'Color'), 'Gray')
             self.assertEqual(m['Color'].get('Boris'), 'White')
-            with self.assertRaises(KeyError): m.get('InvalidKey')
-            with self.assertRaises(KeyError): m.getc('Boris', 'InvalidCol')
-            with self.assertRaises(KeyError): m.getc('InvalidKey', 'InvalidCol')
+            with self.assertRaises(KeyError):
+                m.get('InvalidKey')
+            with self.assertRaises(KeyError):
+                m.getc('Boris', 'InvalidCol')
+            with self.assertRaises(KeyError):
+                m.getc('InvalidKey', 'InvalidCol')
 
     def test_get_caseinsensitive(self):
         for key in ['Vincent', 'VINCENT', 'ViNcEnT']:
@@ -43,15 +44,19 @@ class TestMapperReadOnlyOperations(TestMapperBase):
                 self.assertEqual(self._mapper_ci.getc(key, col), 'Yellow')
                 self.assertEqual(self._mapper_ci[col].get(key), 'Yellow')
 
+    # noinspection PyStatementEffect
     def test_indexer(self):
         self.assertIsNotNone(self._mapper_cs['Species'])
         self.assertIsNotNone(self._mapper_ci['Species'])
-        with self.assertRaises(KeyError): self._mapper_cs['InvalidCol']
-        with self.assertRaises(KeyError): self._mapper_ci['InvalidCol']
-        with self.assertRaises(KeyError): self._mapper_cs['SPECIES']
+        with self.assertRaises(KeyError):
+            self._mapper_cs['InvalidCol']
+        with self.assertRaises(KeyError):
+            self._mapper_ci['InvalidCol']
+        with self.assertRaises(KeyError):
+            self._mapper_cs['SPECIES']
         self.assertIsNotNone(self._mapper_ci['SPECIES'])
 
-    def test_touch_nodefaultvalue(self):
+    def test_touch_no_defaultvalue(self):
         for m in [self._mapper_cs, self._mapper_ci]:
             self.assertTrue(m.touch('Vincent'))
             self.assertTrue(m['Species'].touch('Vincent'))
