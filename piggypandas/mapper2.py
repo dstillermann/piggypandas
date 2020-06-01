@@ -131,10 +131,11 @@ class Mapper2:
     def _flush(self):
         if not isinstance(self._df, pd.DataFrame):
             return
+        df: pd.DataFrame = self._df.rename(columns=self._columnmap, inplace=False)
         if self._path.suffix in ['.csv']:
-            self._df.to_csv(str(self._path), index=False)
+            df.to_csv(str(self._path), index=False)
         elif self._path.suffix in ['.xls', '.xlsx']:
-            self._df.to_excel(str(self._path), sheet_name=self._sheet_name, index=False)
+            df.to_excel(str(self._path), sheet_name=self._sheet_name, index=False)
         else:
             raise NotImplementedError(f"Can't save {str(self._path)}, unsupported format")
 
@@ -172,7 +173,7 @@ class Mapper2:
                     self._columnmap[_col] = col
 
                 if _key not in self._df.index:
-                    sr: pd.Series = pd.Series(index=self._columns, name=_key)
+                    sr: pd.Series = pd.Series(index=self._columns, name=_key, dtype='object')
                     sr[_col] = str(value)
                     sr[self._keycolumn] = key  # original, not cleaned up
                     self._df = self._df.append(other=sr, verify_integrity=True)
