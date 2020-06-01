@@ -26,6 +26,15 @@ class TestMapperBase(unittest.TestCase):
 
 class TestMapperReadOnlyOperations(TestMapperBase):
 
+    def test_has(self):
+        for m in [self._mapper_cs, self._mapper_ci]:
+            self.assertTrue(m.has('Vincent'))
+            self.assertFalse(m.has('InvalidKey'))
+            self.assertTrue(m.hasc('Vincent', 'Color'))
+            self.assertFalse(m.hasc('InvalidKey', 'Color'))
+            self.assertFalse(m.hasc('Vincent', 'InvalidCol'))
+            self.assertTrue(m.hasc('Vincent'))
+
     def test_get_no_defaultvalue(self):
         for m in [self._mapper_cs, self._mapper_ci]:
             self.assertEqual(m.get('Vincent'), 'Lamb')
@@ -37,6 +46,13 @@ class TestMapperReadOnlyOperations(TestMapperBase):
                 m.getc('Boris', 'InvalidCol')
             with self.assertRaises(KeyError):
                 m.getc('InvalidKey', 'InvalidCol')
+
+    def test_has_caseinsensitive(self):
+        for key in ['Vincent', 'VINCENT', 'ViNcEnT']:
+            self.assertTrue(self._mapper_ci.has(key))
+            for col in ['Color', 'color', 'ColOr']:
+                self.assertTrue(self._mapper_ci.hasc(key, col))
+                self.assertTrue(self._mapper_ci[col].has(key))
 
     def test_get_caseinsensitive(self):
         for key in ['Vincent', 'VINCENT', 'ViNcEnT']:

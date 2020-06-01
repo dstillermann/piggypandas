@@ -3,7 +3,7 @@ import numpy as np
 from pathlib import Path
 import sys
 import math
-from typing import Optional
+from typing import Any, Optional
 
 
 class Mapper:
@@ -16,7 +16,7 @@ class Mapper:
             m.flush()
 
     @staticmethod
-    def cleanup(s: str, ignore_case: bool = False) -> str:
+    def cleanup(s: str, ignore_case: bool) -> str:
         if ignore_case:
             return str(s).strip().upper()
         else:
@@ -139,18 +139,39 @@ class Mapper:
         else:
             raise NotImplementedError(f"Can't save {str(self._path)}, unsupported format")
 
+    def has(self, key: str) -> bool:
+        _key = self._cleanup(key)
+        return _key in self._df.index
+
+    def hasc(self, key: str, col: Optional[str] = None) -> bool:
+        _key = self._cleanup(key)
+        if _key not in self._df.index:
+            return False
+        _col = self._defaultgetcolumn if col is None else self._cleanup(col)
+        try:
+            val: Any = self._df.loc[_key, _col]
+            return not (type(val) is float and math.isnan(val))
+        except KeyError:
+            return False
+
     def _do_get(self, key: str, col: Optional[str], defaultvalue: Optional[str]) -> str:
         _key = self._cleanup(key)
         _col = self._defaultgetcolumn if col is None else self._cleanup(col)
         try:
-            return str(self._df.loc[_key, _col])
+            val: Any = self._df.loc[_key, _col]
+            if not (type(val) is float and math.isnan(val)):
+                return str(val)
+            elif defaultvalue is not None:
+                return defaultvalue
+            else:
+                raise KeyError(f"[{_key}, {_col}] not found and no defaultvalue provided")
         except KeyError as e:
             if defaultvalue is not None:
                 self._df.loc[_key, _col] = defaultvalue
                 self._is_changed = True
                 return defaultvalue
             else:
-                raise KeyError(f"[{_key}, {_col}] not found") from e
+                raise KeyError(f"[{_key}, {_col}] not found and no defaultvalue provided") from e
 
     def get(self, key: str, defaultvalue: Optional[str] = None) -> str:
         return self._do_get(key=key, col=None, defaultvalue=defaultvalue)
@@ -195,8 +216,8 @@ class Mapper:
         _key = self._cleanup(key)
         _col = self._defaultgetcolumn if col is None else self._cleanup(col)
         if _key in self._df.index and _col in self._columns:
-            s = self._df.loc[_key, _col]
-            if not (type(s) is float and math.isnan(s)):
+            val: Any = self._df.loc[_key, _col]
+            if not (type(val) is float and math.isnan(val)):
                 return True
             elif defaultvalue is None:
                 return False
@@ -226,6 +247,9 @@ class _Indexer:
     def __init__(self, mapper: Mapper, col: str):
         self._mapper = mapper
         self._col = col
+
+    def has(self, key: str) -> bool:
+        return self._mapper.hasc(key=key, col=self._col)
 
     def get(self, key: str, defaultvalue: Optional[str] = None) -> str:
         return self._mapper.getc(key=key, col=self._col, defaultvalue=defaultvalue)
