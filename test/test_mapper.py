@@ -1,5 +1,5 @@
 import unittest
-from piggypandas import Mapper2
+from piggypandas import Mapper
 import pandas as pd
 
 
@@ -15,8 +15,8 @@ class TestMapperBase(unittest.TestCase):
         xlsx_file_ci: str = '../tmp/demomapping-ci.xlsx'
         df.to_excel(xlsx_file_cs, sheet_name='DATA', index=False)
         df.to_excel(xlsx_file_ci, sheet_name='DATA', index=False)
-        self._mapper_cs: Mapper2 = Mapper2(xlsx_file_cs, columns=['Name'], ignore_case=False)  # case-sensitive
-        self._mapper_ci: Mapper2 = Mapper2(xlsx_file_ci, columns=['Name'], ignore_case=True)  # case-insensitive
+        self._mapper_cs: Mapper = Mapper(xlsx_file_cs, columns=['Name'], ignore_case=False)  # case-sensitive
+        self._mapper_ci: Mapper = Mapper(xlsx_file_ci, columns=['Name'], ignore_case=True)  # case-insensitive
 
     def tearDown(self) -> None:
         self._mapper_cs.flush()

@@ -6,13 +6,13 @@ import math
 from typing import Optional
 
 
-class Mapper2:
+class Mapper:
 
     _all = []
 
     @staticmethod
     def flush_all():
-        for m in Mapper2._all:
+        for m in Mapper._all:
             m.flush()
 
     @staticmethod
@@ -37,7 +37,7 @@ class Mapper2:
         f: Path = Path(slug)
         if f.is_file():
             return f
-        p: Path = Mapper2._mapping_dir()
+        p: Path = Mapper._mapping_dir()
         f = p.joinpath(slug)
         if f.is_file():
             return f
@@ -49,19 +49,19 @@ class Mapper2:
 
     @staticmethod
     def _mapping_filename(slug: str) -> str:
-        return str(Mapper2._mapping_file(slug))
+        return str(Mapper._mapping_file(slug))
 
     def __init__(self, slug: str, columns: list, sheet_name: str = 'DATA', ignore_case: bool = True):
-        Mapper2._all.append(self)
+        Mapper._all.append(self)
         self._ignore_case: bool = ignore_case
         self._columns: list = columns
         self._sheet_name: str = sheet_name
-        self._path: Path = Mapper2._mapping_file(slug)
+        self._path: Path = Mapper._mapping_file(slug)
         self._load()
         self._is_changed: bool = False
 
     def _cleanup(self, s: str) -> str:
-        return Mapper2.cleanup(s, self._ignore_case)
+        return Mapper.cleanup(s, self._ignore_case)
 
     def _load(self):
         self._df: pd.DataFrame
@@ -223,7 +223,7 @@ class Mapper2:
 
 class _Indexer:
 
-    def __init__(self, mapper: Mapper2, col: str):
+    def __init__(self, mapper: Mapper, col: str):
         self._mapper = mapper
         self._col = col
 
