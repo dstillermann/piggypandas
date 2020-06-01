@@ -1,11 +1,16 @@
 from piggypandas import Mapper2
-import shutil
-
+import pandas as pd
 
 def _main():
-    shutil.copy('mapping/demomapping.xlsx', 'tmp/demomapping.xlsx')
-    m0: Mapper2 = Mapper2('tmp/demomapping.xlsx', columns=['Name'], ignore_case=False)
-    m1: Mapper2 = Mapper2('tmp/demomapping.xlsx', columns=['Name'], ignore_case=True)
+    df: pd.DataFrame = pd.DataFrame(data={
+        'Name': ['Boris', 'Basil', 'Vincent', 'Murray'],
+        'Species': ['Pig', 'Horse', 'Lamb', 'Mouse'],
+        'Color': ['White', 'Black', 'Yellow', 'Gray']
+    })
+    xlsx_file: str = 'tmp/demomapping.xlsx'
+    df.to_excel(xlsx_file, sheet_name='DATA', index=False)
+    m0: Mapper2 = Mapper2(xlsx_file, columns=['Name'], ignore_case=False)
+    m1: Mapper2 = Mapper2(xlsx_file, columns=['Name'], ignore_case=True)
 
     print("\n====\nTesting get/getc without defaultvalue")
     for mname, m in {"m0": m0, "m1": m1}.items():
@@ -49,7 +54,7 @@ def _main():
             ('Mary', 'Sex', 'Female')
         ]:
             b = m.touchc(key, col, defaultvalue)
-            print(f"{mname}.touchc(\"{key}\",\"{col}\",\"{defaultvalue}\",)={b}")
+            print(f"{mname}.touchc(\"{key}\",\"{col}\",\"{defaultvalue}\")={b}")
 
     print("\n====\nTesting set, incl. for case sensitivity")
     for mname, m in {"m0": m0, "m1": m1}.items():
@@ -60,7 +65,7 @@ def _main():
             ('MarY', 'SPECIES', 'Hamster')
         ]:
             b = m.setc(key, col, value)
-            print(f"{mname}.touchc(\"{key}\",\"{col}\",\"{value}\",)={b}")
+            print(f"{mname}.setc(\"{key}\",\"{col}\",\"{value}\")={b}")
 
     Mapper2.flush_all()
 

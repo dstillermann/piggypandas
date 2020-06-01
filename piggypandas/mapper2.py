@@ -112,6 +112,17 @@ class Mapper2:
     def is_changed(self) -> bool:
         return self._is_changed
 
+    @property
+    def size(self) -> int:
+        return self._df.index.size
+
+    def __len__(self) -> int:
+        return self.size
+
+    @property
+    def columns(self) -> list:
+        return [self._columnmap[x] for x in self._columns]
+
     def flush(self):
         if self._is_changed:
             self._flush()
@@ -203,6 +214,9 @@ class Mapper2:
         return self._do_touch(key=key, col=col, defaultvalue=defaultvalue)
 
     def __getitem__(self, col: str) -> "_Indexer":
+        _col = self._cleanup(col)
+        if _col not in self._columns:
+            raise KeyError(f"Invalid column \"{col}\"")
         return _Indexer(mapper=self, col=col)
 
 
