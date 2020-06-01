@@ -127,5 +127,28 @@ class TestMapperSet(TestMapperBase):
         self.assertEqual(len(self._mapper_ci.columns), 3)
 
 
+class TestMapperPersistence(unittest.TestCase):
+
+    def test_persistence(self):
+        df: pd.DataFrame = pd.DataFrame(data={
+            'Artist': ['Rainbow', 'Yes', 'Sex Pistols'],
+            'Genre': ['Hard Rock', 'Art Rock', 'Punk Rock']
+        })
+        xlsx_file: str = '../tmp/demo-persistence.xlsx'
+        df.to_excel(xlsx_file, sheet_name='DATA', index=False)
+
+        m1: Mapper = Mapper(xlsx_file, columns=['Artist', 'Genre'])
+        self.assertTrue(m1['Genre'].set('Godspeed You Black Emperor', 'Post-Rock'))
+        self.assertTrue(m1.is_changed)
+        m1.flush()
+        self.assertFalse(m1.is_changed)
+        self.assertTrue(m1.has('Godspeed You Black Emperor'))
+
+        m2: Mapper = Mapper(xlsx_file, columns=['Artist', 'Genre'])
+        self.assertFalse(m2.is_changed)
+        self.assertTrue(m2.has('Godspeed You Black Emperor'))
+        self.assertEqual(m2['Genre'].get('Godspeed You Black Emperor'), 'Post-Rock')
+
+
 if __name__ == '__main__':
     unittest.main()
