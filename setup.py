@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="piggypandas",
-    version="0.0.4",
+    version="0.0.5",
     author="Dmitry Stillermannm",
     author_email="dmitry@stillermann.com",
     description="A few helpers for more efficient pandas work",

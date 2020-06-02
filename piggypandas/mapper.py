@@ -4,6 +4,7 @@ from pathlib import Path
 import sys
 import math
 from typing import Any, Optional
+from .cleanup import Cleanup
 
 
 class Mapper:
@@ -14,13 +15,6 @@ class Mapper:
     def flush_all():
         for m in Mapper._all:
             m.flush()
-
-    @staticmethod
-    def cleanup(s: str, ignore_case: bool) -> str:
-        if ignore_case:
-            return str(s).strip().upper()
-        else:
-            return str(s).strip()
 
     @staticmethod
     def _mapping_dir() -> Path:
@@ -61,7 +55,8 @@ class Mapper:
         self._is_changed: bool = False
 
     def _cleanup(self, s: str) -> str:
-        return Mapper.cleanup(s, self._ignore_case)
+        return Cleanup.cleanup(s,
+                               Cleanup.CASE_INSENSITIVE if self._ignore_case else Cleanup.CASE_SENSITIVE)
 
     def _load(self):
         self._df: pd.DataFrame
