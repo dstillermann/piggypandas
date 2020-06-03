@@ -1,16 +1,21 @@
 import pandas as pd
 from pathlib import Path
-from typing import Optional, Union, List, Dict
+from typing import Any, Optional, Union, List, Mapping, Callable
 # import xlsxwriter as xls
 from .cleanup import Cleanup
 
 
+StringMapper = Union[Mapping[str, str], Callable[[str], str]]
+ColumnList = List[str]
+
+
 def read_dataframe(path: Union[str, Path],
                    sheet_name: Optional[str] = None,
-                   mandatory_columns: Optional[List[str]] = None,
-                   dtype_conversions: Optional[Dict[str, str]] = None,
-                   rename_columns: Optional[Dict[str, str]] = None,
-                   cleanup_mode: int = Cleanup.CASE_SENSITIVE
+                   column_cleanup_mode: int = Cleanup.CASE_SENSITIVE,
+                   rename_columns: Optional[StringMapper] = None,
+                   mandatory_columns: Optional[ColumnList] = None,
+                   dtype_conversions: Optional[StringMapper] = None,
+                   fillna_value: Any = None
                    ) -> pd.DataFrame:
     file_in: Path = path if isinstance(path, Path) else Path(path)
 
@@ -24,15 +29,15 @@ def read_dataframe(path: Union[str, Path],
     else:
         raise NotImplementedError(f"Can not read {str(file_in)}, unsupported format")
 
+    d_in = d_in.rename(columns=lambda x: Cleanup.cleanup(x, cleanup_mode=column_cleanup_mode))
+
     if rename_columns is not None:
         d_in = d_in.rename(columns=rename_columns)
-
-    d_in = d_in.rename(columns=lambda x: Cleanup.cleanup(x, cleanup_mode=cleanup_mode))
 
     if mandatory_columns is not None:
         missing_columns: list = list()
         for c in mandatory_columns:
-            if Cleanup.cleanup(c, cleanup_mode=cleanup_mode) not in d_in.columns:
+            if Cleanup.cleanup(c, cleanup_mode=column_cleanup_mode) not in d_in.columns:
                 missing_columns.append(c)
         if len(missing_columns) > 0:
             raise ValueError(f"Missing input dataframe columns: {missing_columns}\n")
@@ -41,5 +46,7 @@ def read_dataframe(path: Union[str, Path],
         for (c, t) in dtype_conversions.items():
             d_in[c] = d_in[c].astype(t)
 
-    return d_in
+    if fillna_value is not None:
+        d_in.fillna(value=fillna_value, inplace=True)
 
+    return d_in
