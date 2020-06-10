@@ -1,11 +1,14 @@
 import setuptools
 
-with open("README.md", "r") as fh:
-    long_description = fh.read()
+with open('README.md', 'r') as fh:
+    long_description: str = fh.read()
+
+with open('requirements.txt', 'r') as fh:
+    install_requires: list = [line.strip() for line in fh]
 
 setuptools.setup(
     name="piggypandas",
-    version="0.0.5",
+    version="0.0.6",
     author="Dmitry Stillermannm",
     author_email="dmitry@stillermann.com",
     description="A few helpers for more efficient pandas work",
@@ -22,5 +25,5 @@ setuptools.setup(
         "Topic :: Software Development :: Libraries :: Python Modules"
     ],
     python_requires='>=3.6',
-    install_requires=['pandas>=1.0.*']
+    install_requires=install_requires
 )
