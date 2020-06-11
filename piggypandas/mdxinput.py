@@ -1,12 +1,20 @@
 import adodbapi
 import pandas as pd
 import re
-from typing import List, Tuple, Optional
+from typing import Optional, Any
+from .types import ColumnList, StringMapper, ColumnREMapper
+from .cleanup import Cleanup
+from .dfutils import cleanup_dataframe
 
 
 def read_mdx(connection: adodbapi.Connection,
              mdx_cmd: str,
-             column_map: Optional[List[Tuple[str, str]]] = None
+             column_map: Optional[ColumnREMapper] = None,
+             rename_columns: Optional[StringMapper] = None,
+             column_cleanup_mode: int = Cleanup.CASE_SENSITIVE,
+             mandatory_columns: Optional[ColumnList] = None,
+             dtype_conversions: Optional[StringMapper] = None,
+             fillna_value: Any = None
              ) -> pd.DataFrame:
     with connection.cursor() as cur:
         cur.execute(mdx_cmd)
@@ -31,6 +39,11 @@ def read_mdx(connection: adodbapi.Connection,
                 data[raw_cname] = col_arrays[r.columnNames[raw_cname]]
 
         cur.close()
-        df: pd.DataFrame = pd.DataFrame(data=data)
-        return df
+        d_in: pd.DataFrame = pd.DataFrame(data=data)
 
+        return cleanup_dataframe(d_in,
+                                 rename_columns=rename_columns,
+                                 column_cleanup_mode=column_cleanup_mode,
+                                 mandatory_columns=mandatory_columns,
+                                 dtype_conversions=dtype_conversions,
+                                 fillna_value=fillna_value)

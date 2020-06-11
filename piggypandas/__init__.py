@@ -1,4 +1,6 @@
 from ._version import __version__
+from .types import ColumnList, StringMapper, ColumnREMapper
+from .dfutils import cleanup_dataframe
 from .cleanup import Cleanup
 from .mapper import Mapper
 from .fileinput import read_dataframe
