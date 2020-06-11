@@ -2,7 +2,7 @@ import pandas as pd
 from pathlib import Path
 from typing import Any, Optional, Union
 from .cleanup import Cleanup
-from .types import ColumnList, StringMapper
+from .types import ColumnList, StringMapper, StringDict
 from .dfutils import cleanup_dataframe
 
 
@@ -11,7 +11,7 @@ def read_dataframe(path: Union[str, Path],
                    rename_columns: Optional[StringMapper] = None,
                    column_cleanup_mode: int = Cleanup.CASE_SENSITIVE,
                    mandatory_columns: Optional[ColumnList] = None,
-                   dtype_conversions: Optional[StringMapper] = None,
+                   dtype_conversions: Optional[StringDict] = None,
                    fillna_value: Any = None
                    ) -> pd.DataFrame:
     file_in: Path = path if isinstance(path, Path) else Path(path)

@@ -2,7 +2,7 @@ import adodbapi
 import pandas as pd
 import re
 from typing import Optional, Any
-from .types import ColumnList, StringMapper, ColumnREMapper
+from .types import ColumnList, StringMapper, ColumnREMapper, StringDict
 from .cleanup import Cleanup
 from .dfutils import cleanup_dataframe
 
@@ -13,7 +13,7 @@ def read_mdx(connection: adodbapi.Connection,
              rename_columns: Optional[StringMapper] = None,
              column_cleanup_mode: int = Cleanup.CASE_SENSITIVE,
              mandatory_columns: Optional[ColumnList] = None,
-             dtype_conversions: Optional[StringMapper] = None,
+             dtype_conversions: Optional[StringDict] = None,
              fillna_value: Any = None
              ) -> pd.DataFrame:
     with connection.cursor() as cur:

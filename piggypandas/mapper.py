@@ -17,7 +17,7 @@ class Mapper:
             m.flush()
 
     @staticmethod
-    def _mapping_dir() -> Path:
+    def mapping_dir() -> Path:
         p: Path = Path("./mapping")
         if p.is_dir():
             return p.resolve()
@@ -27,11 +27,25 @@ class Mapper:
         return Path(".").resolve()
 
     @staticmethod
+    def mapping_file(file_name: str, ignore_errors: bool = False) -> Optional[Path]:
+        f: Path = Path(file_name)
+        if f.is_file():
+            return f
+        p: Path = Mapper.mapping_dir()
+        f = p.joinpath(f.name)
+        if f.is_file():
+            return f
+        if ignore_errors:
+            return None
+        else:
+            raise FileNotFoundError(f"File not found \"{file_name}\"")
+
+    @staticmethod
     def _mapping_file(slug: str) -> Path:
         f: Path = Path(slug)
         if f.is_file():
             return f
-        p: Path = Mapper._mapping_dir()
+        p: Path = Mapper.mapping_dir()
         f = p.joinpath(slug)
         if f.is_file():
             return f

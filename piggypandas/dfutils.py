@@ -1,6 +1,6 @@
 import pandas as pd
 from typing import Optional, Any
-from .types import StringMapper, ColumnList
+from .types import StringMapper, ColumnList, StringDict
 from .cleanup import Cleanup
 
 
@@ -9,7 +9,7 @@ def cleanup_dataframe(
         rename_columns: Optional[StringMapper] = None,
         column_cleanup_mode: int = Cleanup.NONE,
         mandatory_columns: Optional[ColumnList] = None,
-        dtype_conversions: Optional[StringMapper] = None,
+        dtype_conversions: Optional[StringDict] = None,
         fillna_value: Any = None) -> pd.DataFrame:
     df = df.rename(columns=lambda x: Cleanup.cleanup(x, cleanup_mode=column_cleanup_mode))
 
