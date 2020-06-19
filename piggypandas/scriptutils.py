@@ -8,8 +8,9 @@ def overwrite_protected_path(f: Union[str, Path]) -> Path:
     if f.is_dir():
         return f
     n: int = 0
-    while f.is_file():
+    f_result = f
+    while f_result.is_file():
         n += 1
-        f = f.with_name(f.stem + f" ({n})" + f.suffix)
-    return f
+        f_result = f.with_name(f.stem + f" ({n})" + f.suffix)
+    return f_result
 
