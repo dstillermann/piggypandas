@@ -20,7 +20,8 @@ def read_mdx(connection: adodbapi.Connection,
              fillna_value: Any = None
              ) -> pd.DataFrame:
     with connection.cursor() as cur:
-        _logger.debug(f"executing MDX {mdx_cmd[:80]}")
+        mdx_cmd_log: str = " ".join(mdx_cmd[:80].split())
+        _logger.debug(f"executing MDX {mdx_cmd_log}")
         cur.execute(mdx_cmd)
         r = cur.fetchall()
         _logger.debug(f"MDX query complete")
