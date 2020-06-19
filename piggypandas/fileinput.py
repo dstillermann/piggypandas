@@ -4,6 +4,10 @@ from typing import Any, Optional, Union
 from .cleanup import Cleanup
 from .types import ColumnList, StringMapper, StringDict
 from .dfutils import cleanup_dataframe
+import logging
+
+
+_logger = logging.getLogger(__name__)
 
 
 def read_dataframe(path: Union[str, Path],
@@ -20,15 +24,22 @@ def read_dataframe(path: Union[str, Path],
     if not file_in.is_file():
         raise FileNotFoundError(f"File {str(file_in)} does not exist")
     elif file_in.suffix in ['.csv']:
+        _logger.debug(f"reading CSV \"{str(file_in)}\"")
         d_in = pd.read_csv(str(file_in))
     elif file_in.suffix in ['.xls', '.xlsx']:
+        _logger.debug(f"reading Excel \"{str(file_in)}\"")
         d_in = pd.read_excel(str(file_in), sheet_name=sheet_name)
     else:
-        raise NotImplementedError(f"Can not read {str(file_in)}, unsupported format")
+        msg = f"Can not read {str(file_in)}, unsupported format"
+        _logger.error(msg)
+        raise NotImplementedError(msg)
 
-    return cleanup_dataframe(d_in,
+    _logger.debug("cleaning up dataframe")
+    d_in = cleanup_dataframe(d_in,
                              rename_columns=rename_columns,
                              column_cleanup_mode=column_cleanup_mode,
                              mandatory_columns=mandatory_columns,
                              dtype_conversions=dtype_conversions,
                              fillna_value=fillna_value)
+    _logger.debug("dataframe cleaned up")
+    return d_in

@@ -7,6 +7,7 @@ from .cleanup import Cleanup
 from .dfutils import cleanup_dataframe
 import logging
 
+
 _logger = logging.getLogger(__name__)
 
 
@@ -20,11 +21,11 @@ def read_mdx(connection: adodbapi.Connection,
              fillna_value: Any = None
              ) -> pd.DataFrame:
     with connection.cursor() as cur:
-        mdx_cmd_log: str = " ".join(mdx_cmd[:80].split())
+        mdx_cmd_log: str = " ".join(mdx_cmd[:120].split())
         _logger.debug(f"executing MDX {mdx_cmd_log}")
         cur.execute(mdx_cmd)
         r = cur.fetchall()
-        _logger.debug(f"MDX query complete")
+        _logger.debug(f"MDX query complete; numberOfRows={r.numberOfRows}, numberOfColumns={r.numberOfColumns}")
         col_arrays = r.ado_results
 
         data: dict = dict()
