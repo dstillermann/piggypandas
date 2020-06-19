@@ -5,6 +5,9 @@ from typing import Optional, Any
 from .types import ColumnList, StringMapper, ColumnREMapper, StringDict
 from .cleanup import Cleanup
 from .dfutils import cleanup_dataframe
+import logging
+
+_logger = logging.getLogger(__name__)
 
 
 def read_mdx(connection: adodbapi.Connection,
@@ -17,8 +20,10 @@ def read_mdx(connection: adodbapi.Connection,
              fillna_value: Any = None
              ) -> pd.DataFrame:
     with connection.cursor() as cur:
+        _logger.debug(f"executing MDX {mdx_cmd[:80]}")
         cur.execute(mdx_cmd)
         r = cur.fetchall()
+        _logger.debug(f"MDX query complete")
         col_arrays = r.ado_results
 
         data: dict = dict()
@@ -29,21 +34,29 @@ def read_mdx(connection: adodbapi.Connection,
             for (pattern, cname) in column_map:
                 if re.search(pattern, raw_cname, flags=re.IGNORECASE):
                     if cname in data:
-                        raise KeyError(f"Duplicate column \"{cname}\"")
+                        msg = f"Duplicate column \"{cname}\""
+                        _logger.exception(msg)
+                        raise KeyError(msg)
                     data[cname] = col_arrays[r.columnNames[raw_cname]]
                     found = True
                     break
             if not found:
                 if raw_cname in data:
-                    raise KeyError(f"Duplicate column \"{raw_cname}\"")
+                    msg = f"Duplicate column \"{raw_cname}\""
+                    _logger.exception(msg)
+                    raise KeyError(msg)
                 data[raw_cname] = col_arrays[r.columnNames[raw_cname]]
 
         cur.close()
-        d_in: pd.DataFrame = pd.DataFrame(data=data)
 
-        return cleanup_dataframe(d_in,
+        _logger.debug("creating dataframe")
+        d_in: pd.DataFrame = pd.DataFrame(data=data)
+        d_in = cleanup_dataframe(d_in,
                                  rename_columns=rename_columns,
                                  column_cleanup_mode=column_cleanup_mode,
                                  mandatory_columns=mandatory_columns,
                                  dtype_conversions=dtype_conversions,
                                  fillna_value=fillna_value)
+        _logger.debug("dataframe created")
+
+        return d_in

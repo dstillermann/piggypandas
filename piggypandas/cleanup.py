@@ -6,10 +6,12 @@ class Cleanup:
     UPPER: int = 0x01
     LOWER: int = 0x02
     TITLE: int = 0x03
-    _CASE_MASK: int = 0x03
-    STRIP: int = 0x04
-    WORDS: int = 0x08
-    CASE_INSENSITIVE: int = UPPER | STRIP
+    CASEFOLD: int = 0x04
+    _CASE_MASK: int = 0x07
+    STRIP: int = 0x08
+    WORDS: int = 0x10
+    _WHITESPACE_MASK: int = 0x18
+    CASE_INSENSITIVE: int = CASEFOLD | STRIP
     CASE_SENSITIVE: int = STRIP
 
     @staticmethod
@@ -17,19 +19,25 @@ class Cleanup:
         if not isinstance(s, str):
             s = str(s)
 
-        case: int = cleanup_mode & Cleanup._CASE_MASK
-        if case == Cleanup.UPPER:
+        case_mode: int = cleanup_mode & Cleanup._CASE_MASK
+        if case_mode == Cleanup.UPPER:
             s = s.upper()
-        elif case == Cleanup.LOWER:
+        elif case_mode == Cleanup.LOWER:
             s = s.upper()
-        elif case == Cleanup.TITLE:
+        elif case_mode == Cleanup.TITLE:
             s = s.title()
+        elif case_mode == Cleanup.CASEFOLD:
+            s = s.casefold()
+        elif case_mode != 0:
+            raise ValueError(f"bad cleanup/case mode {cleanup_mode}")
 
-        if (cleanup_mode & Cleanup.STRIP) != 0:
+        whitespace_mode: int = cleanup_mode & Cleanup._WHITESPACE_MASK
+        if whitespace_mode == Cleanup.STRIP:
             s = s.strip()
-
-        if (cleanup_mode & Cleanup.WORDS) != 0:
+        elif whitespace_mode == Cleanup.WORDS:
             s = " ".join(s.split())
+        elif whitespace_mode != 0:
+            raise ValueError(f"bad cleanup/whitespace mode {cleanup_mode}")
 
         return s
 
