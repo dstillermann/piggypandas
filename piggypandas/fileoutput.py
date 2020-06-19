@@ -15,7 +15,7 @@ SheetFormatList = List[SheetFormat]
 
 def write_dataframes(path: Union[str, Path],
                      sheets: SheetDataFrameList,
-                     formats: Optional[SheetFormatList]
+                     formats: Optional[SheetFormatList] = None
                      ):
     file_out: Path = path if isinstance(path, Path) else Path(path)
     if file_out.suffix in ['.xls', '.xlsx']:
