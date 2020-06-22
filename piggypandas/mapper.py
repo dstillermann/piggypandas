@@ -73,7 +73,7 @@ class Mapper:
                                Cleanup.CASE_INSENSITIVE if self._ignore_case else Cleanup.CASE_SENSITIVE)
 
     def _load(self):
-        self._df: pd.DataFrame
+        self._df: Optional[pd.DataFrame] = None
         if self._path.is_file():
             if self._path.suffix in ['.csv']:
                 self._df = pd.read_csv(str(self._path), index_col=False)
