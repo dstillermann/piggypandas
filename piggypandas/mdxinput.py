@@ -8,7 +8,7 @@ from .dfutils import cleanup_dataframe
 import logging
 
 
-_logger = logging.getLogger(__name__)
+_logger = logging.getLogger('piggypandas')
 
 
 def read_mdx(connection: adodbapi.Connection,

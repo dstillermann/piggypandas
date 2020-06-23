@@ -5,7 +5,7 @@ from typing import Union, List, Mapping, Optional, Tuple, Dict
 import re
 import logging
 
-_logger = logging.getLogger(__name__)
+_logger = logging.getLogger('piggypandas')
 
 SheetDataFrame = Tuple[str, pd.DataFrame, Dict]
 SheetDataFrameList = List[SheetDataFrame]
