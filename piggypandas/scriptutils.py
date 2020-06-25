@@ -14,3 +14,4 @@ def overwrite_protected_path(f: Union[str, Path]) -> Path:
         f_result = f.with_name(f.stem + f" ({n})" + f.suffix)
     return f_result
 
+
