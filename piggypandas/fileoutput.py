@@ -40,7 +40,8 @@ def write_dataframes(path: Union[str, Path],
                                 ws.set_column(first_col=i, last_col=i, width=width, cell_format=fmt)
                                 break
 
-            writer.save()
+            # used to cause close() warning due to xlsxwriter stupid logic
+            # writer.save()
     else:
         msg = f"Can't write {str(file_out)}, unsupported format"
         _logger.error(msg)
