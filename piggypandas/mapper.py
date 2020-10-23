@@ -91,7 +91,7 @@ class Mapper:
 
         if isinstance(self._df, pd.DataFrame):
             if isinstance(self._columns, list) and len(self._columns) > 0:
-                df_columns: list = self._df.columns.values
+                df_columns: list = list(self._df.columns.values)
                 df_columns_cmp: dict = {self._cleanup(x): x for x in df_columns}
                 self_columns_cmp: dict = {self._cleanup(x): x for x in self._columns}
                 missing_columns: list = [x for x in self_columns_cmp.keys() if x not in df_columns_cmp.keys()]
