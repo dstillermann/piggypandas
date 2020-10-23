@@ -72,6 +72,13 @@ class Mapper:
         return Cleanup.cleanup(s,
                                Cleanup.CASE_INSENSITIVE if self._ignore_case else Cleanup.CASE_SENSITIVE)
 
+    @staticmethod
+    def _is_nan(val: Any) -> bool:
+        try:
+            return math.isnan(val)
+        except TypeError:
+            return False
+
     def _load(self):
         self._df: Optional[pd.DataFrame] = None
         if self._path.is_file():
@@ -159,34 +166,9 @@ class Mapper:
         _col = self._defaultgetcolumn if col is None else self._cleanup(col)
         try:
             val: Any = self._df.loc[_key, _col]
-            return not (type(val) is float and math.isnan(val))
+            return not Mapper._is_nan(val)
         except KeyError:
             return False
-
-    def _do_get(self, key: str, col: Optional[str], defaultvalue: Optional[str]) -> str:
-        _key = self._cleanup(key)
-        _col = self._defaultgetcolumn if col is None else self._cleanup(col)
-        try:
-            val: Any = self._df.loc[_key, _col]
-            if not (type(val) is float and math.isnan(val)):
-                return str(val)
-            elif defaultvalue is not None:
-                return defaultvalue
-            else:
-                raise KeyError(f"[{_key}, {_col}] not found and no defaultvalue provided")
-        except KeyError as e:
-            if defaultvalue is not None:
-                self._df.loc[_key, _col] = defaultvalue
-                self._is_changed = True
-                return defaultvalue
-            else:
-                raise KeyError(f"[{_key}, {_col}] not found and no defaultvalue provided") from e
-
-    def get(self, key: str, defaultvalue: Optional[str] = None) -> str:
-        return self._do_get(key=key, col=None, defaultvalue=defaultvalue)
-
-    def getc(self, key: str, col: str, defaultvalue: Optional[str] = None) -> str:
-        return self._do_get(key=key, col=col, defaultvalue=defaultvalue)
 
     def _do_set(self, key: str, col: Optional[str], value: str) -> bool:
         _key = self._cleanup(key)
@@ -221,12 +203,37 @@ class Mapper:
     def setc(self, key: str, col: str, value: str) -> bool:
         return self._do_set(key=key, col=col, value=value)
 
+    def _do_get(self, key: str, col: Optional[str], defaultvalue: Optional[str]) -> str:
+        _key = self._cleanup(key)
+        _col = self._defaultgetcolumn if col is None else self._cleanup(col)
+        try:
+            val: Any = self._df.loc[_key, _col]
+            if not Mapper._is_nan(val):
+                return str(val)
+            elif defaultvalue is not None:
+                self._do_set(key=key, col=col, value=defaultvalue)
+                return defaultvalue
+            else:
+                raise KeyError(f"[{_key}, {_col}] not found and no defaultvalue provided")
+        except KeyError as e:
+            if defaultvalue is not None:
+                self._do_set(key=key, col=col, value=defaultvalue)
+                return defaultvalue
+            else:
+                raise KeyError(f"[{_key}, {_col}] not found and no defaultvalue provided") from e
+
+    def get(self, key: str, defaultvalue: Optional[str] = None) -> str:
+        return self._do_get(key=key, col=None, defaultvalue=defaultvalue)
+
+    def getc(self, key: str, col: str, defaultvalue: Optional[str] = None) -> str:
+        return self._do_get(key=key, col=col, defaultvalue=defaultvalue)
+
     def _do_touch(self, key: str, col: Optional[str], defaultvalue: Optional[str]) -> bool:
         _key = self._cleanup(key)
         _col = self._defaultgetcolumn if col is None else self._cleanup(col)
         if _key in self._df.index and _col in self._columns:
             val: Any = self._df.loc[_key, _col]
-            if not (type(val) is float and math.isnan(val)):
+            if not Mapper._is_nan(val):
                 return True
             elif defaultvalue is None:
                 return False

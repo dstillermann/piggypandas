@@ -1,11 +1,24 @@
 import unittest
 from piggypandas import Mapper
 import pandas as pd
+import glob
+import os
+
+
+def _clean_tmp_dir():
+    for f in glob.glob('../tmp/*'):
+        try:
+            os.remove(f)
+        except OSError:
+            pass
 
 
 class TestMapperBase(unittest.TestCase):
+
     def setUp(self) -> None:
         super().setUp()
+        _clean_tmp_dir()
+
         df: pd.DataFrame = pd.DataFrame(data={
             'Name': ['Boris', 'Basil', 'Vincent', 'Murray'],
             'Species': ['Pig', 'Horse', 'Lamb', 'Mouse'],
@@ -21,6 +34,7 @@ class TestMapperBase(unittest.TestCase):
     def tearDown(self) -> None:
         self._mapper_cs.flush()
         self._mapper_ci.flush()
+        _clean_tmp_dir()
         super().tearDown()
 
 
@@ -129,12 +143,12 @@ class TestMapperSet(TestMapperBase):
 
 class TestMapperPersistence(unittest.TestCase):
 
-    def test_persistence(self):
+    def test_persistence1(self):
         df: pd.DataFrame = pd.DataFrame(data={
             'Artist': ['Rainbow', 'Yes', 'Sex Pistols'],
             'Genre': ['Hard Rock', 'Art Rock', 'Punk Rock']
         })
-        xlsx_file: str = '../tmp/demo-persistence.xlsx'
+        xlsx_file: str = '../tmp/demo-persistence1.xlsx'
         df.to_excel(xlsx_file, sheet_name='DATA', index=False)
 
         m1: Mapper = Mapper(xlsx_file, columns=['Artist', 'Genre'])
@@ -148,6 +162,27 @@ class TestMapperPersistence(unittest.TestCase):
         self.assertFalse(m2.is_changed)
         self.assertTrue(m2.has('Godspeed You Black Emperor'))
         self.assertEqual(m2['Genre'].get('Godspeed You Black Emperor'), 'Post-Rock')
+
+    def test_persistence2(self):
+        xlsx_file: str = '../tmp/demo-persistence2'
+        columns = ['A', 'B', 'C', 'D', 'E']
+        m1: Mapper = Mapper(xlsx_file, columns=columns, ignore_case=True)
+        self.assertEqual(m1['B'].get(key='XYZ', defaultvalue='XYZ B'), 'XYZ B')
+        self.assertEqual(m1['C'].get(key='XYZ', defaultvalue='XYZ C'), 'XYZ C')
+        m1.flush()
+
+        m2: Mapper = Mapper(xlsx_file, columns=columns, ignore_case=True)
+        self.assertEqual(m2['B'].get(key='XYZ'), 'XYZ B')
+        self.assertEqual(m2['C'].get(key='XYZ'), 'XYZ C')
+        m2.flush()
+
+    def setUp(self) -> None:
+        super().setUp()
+        _clean_tmp_dir()
+
+    def tearDown(self) -> None:
+        _clean_tmp_dir()
+        super().tearDown()
 
 
 if __name__ == '__main__':
