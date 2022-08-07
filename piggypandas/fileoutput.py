@@ -1,35 +1,55 @@
 import pandas as pd
 import xlsxwriter as xls
 from pathlib import Path
-from typing import Union, List, Mapping, Optional, Tuple, Dict
+from typing import Union, List, Mapping, Optional, Tuple, Dict, Any
 import re
 import logging
+import copy
 
 _logger = logging.getLogger('piggypandas')
 
 SheetDataFrame = Tuple[str, pd.DataFrame, Dict]
 SheetDataFrameList = List[SheetDataFrame]
-SheetFormat = Tuple[str, Mapping[str, str], float]
+CellFormat = Mapping[str, Any]
+SheetFormat = Tuple[str, CellFormat, float]
 SheetFormatList = List[SheetFormat]
 
 
 def write_dataframes(path: Union[str, Path],
                      sheets: SheetDataFrameList,
-                     formats: Optional[SheetFormatList] = None
+                     formats: Optional[SheetFormatList] = None,
+                     common_format: Optional[CellFormat] = None,
+                     header_format: Optional[CellFormat] = None
                      ):
     file_out: Path = path if isinstance(path, Path) else Path(path)
     if file_out.suffix in ['.xls', '.xlsx']:
         with pd.ExcelWriter(str(file_out), engine='xlsxwriter') as writer:
-            for sheet_name, df, kwargs in sheets:
-                df.to_excel(writer, sheet_name=sheet_name, **kwargs)
-
             wb: xls.Workbook = writer.book
-            fmt_header = wb.add_format({'bold': True, 'text_wrap': True, 'align': 'center', 'valign': 'vcenter'})
-            for ws in wb.worksheets():
-                ws.set_row(row=0, height=48.0, cell_format=fmt_header)
 
+            _common_format = dict(common_format)
+
+            def _add_format(cell_format: CellFormat) -> Any:
+                if common_format:
+                    return wb.add_format(_common_format | cell_format)
+                else:
+                    return wb.add_format(cell_format)
+
+            if header_format:
+                fmt_header = _add_format(header_format)
+            else:
+                fmt_header = _add_format({'bold': True, 'text_wrap': True})
+
+            # To avoid pandas' nasty header formatting, we have to write and format the header ourselves
+            # after we apply the user formats.
+            for sheet_name, df, kwargs in sheets:
+                new_kwargs = copy.copy(kwargs)
+                new_kwargs['startrow'] = 1
+                new_kwargs['header'] = False
+                df.to_excel(writer, sheet_name=sheet_name, **new_kwargs)
+
+            # Applying the user formats.
             if formats is not None:
-                compiled_formats = [(r, wb.add_format(d), w) for (r, d, w) in formats]
+                compiled_formats = [(r, _add_format(d), w) for (r, d, w) in formats]
 
                 for sheet_name, df, _ in sheets:
                     ws = writer.sheets[sheet_name]
@@ -39,6 +59,13 @@ def write_dataframes(path: Union[str, Path],
                             if re.search(rgxp, cname, re.I):
                                 ws.set_column(first_col=i, last_col=i, width=width, cell_format=fmt)
                                 break
+
+            # Now is the time to write and format header.
+            for sheet_name, df, _ in sheets:
+                ws = writer.sheets[sheet_name]
+                ws.set_row(row=0, height=48.0, cell_format=fmt_header)
+                for i in range(df.columns.size):
+                    ws.write_string(row=0, col=i, string=str(df.columns[i]), cell_format=fmt_header)
 
             # used to cause close() warning due to xlsxwriter stupid logic
             # writer.save()
