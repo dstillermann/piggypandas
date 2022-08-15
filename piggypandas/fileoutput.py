@@ -26,13 +26,12 @@ def write_dataframes(path: Union[str, Path],
         with pd.ExcelWriter(str(file_out), engine='xlsxwriter') as writer:
             wb: xls.Workbook = writer.book
 
-            _common_format = dict(common_format)
+            _common_format: Dict[str, Any] = dict()
+            if common_format:
+                _common_format = dict(common_format)
 
             def _add_format(cell_format: CellFormat) -> Any:
-                if common_format:
-                    return wb.add_format(_common_format | cell_format)
-                else:
-                    return wb.add_format(cell_format)
+                return wb.add_format(_common_format | cell_format)
 
             if header_format:
                 fmt_header = _add_format(header_format)
