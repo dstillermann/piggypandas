@@ -1,6 +1,6 @@
 import pandas as pd
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any, Optional, Union, Mapping
 from .cleanup import Cleanup
 from .types import ColumnList, StringMapper, StringDict
 from .dfutils import cleanup_dataframe
@@ -16,7 +16,7 @@ def read_dataframe(path: Union[str, Path],
                    column_cleanup_mode: int = Cleanup.CASE_SENSITIVE,
                    mandatory_columns: Optional[ColumnList] = None,
                    dtype_conversions: Optional[StringDict] = None,
-                   fillna_value: Any = None
+                   fillna_values: Optional[Mapping[str, Any]] = None
                    ) -> pd.DataFrame:
     file_in: Path = path if isinstance(path, Path) else Path(path)
 
@@ -40,6 +40,6 @@ def read_dataframe(path: Union[str, Path],
                              column_cleanup_mode=column_cleanup_mode,
                              mandatory_columns=mandatory_columns,
                              dtype_conversions=dtype_conversions,
-                             fillna_value=fillna_value)
+                             fillna_values=fillna_values)
     _logger.debug("dataframe cleaned up")
     return d_in

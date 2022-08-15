@@ -180,7 +180,7 @@ class Mapper:
         else:
             try:
                 if _col not in self._columns:
-                    self._df.insert(loc=len(self._df.columns), column=_col, value=[np.nan] * self._df.index.size)
+                    self._df.insert(loc=len(self._df.columns), column=_col, value=np.nan)
                     self._columns.append(_col)
                     self._columnmap[_col] = col
 

@@ -1,5 +1,5 @@
 import pandas as pd
-from typing import Optional, Any
+from typing import Optional, Any, Mapping
 from .types import StringMapper, ColumnList, StringDict
 from .cleanup import Cleanup
 
@@ -10,7 +10,7 @@ def cleanup_dataframe(
         column_cleanup_mode: int = Cleanup.NONE,
         mandatory_columns: Optional[ColumnList] = None,
         dtype_conversions: Optional[StringDict] = None,
-        fillna_value: Any = None) -> pd.DataFrame:
+        fillna_values: Optional[Mapping[str, Any]] = None) -> pd.DataFrame:
     df = df.rename(columns=lambda x: Cleanup.cleanup(x, cleanup_mode=column_cleanup_mode))
 
     if rename_columns is not None:
@@ -28,7 +28,8 @@ def cleanup_dataframe(
         for (c, t) in dtype_conversions.items():
             df[c] = df[c].astype(t)
 
-    if fillna_value is not None:
-        df.fillna(value=fillna_value, inplace=True)
+    if fillna_values is not None:
+        for (c, v) in fillna_values.items():
+            df[c].fillna(value=v, inplace=True)
 
     return df

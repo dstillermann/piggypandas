@@ -1,7 +1,7 @@
 import adodbapi
 import pandas as pd
 import re
-from typing import Optional, Any
+from typing import Optional, Any, Mapping
 from .types import ColumnList, StringMapper, ColumnREMapper, StringDict
 from .cleanup import Cleanup
 from .dfutils import cleanup_dataframe
@@ -18,7 +18,7 @@ def read_mdx(connection: adodbapi.Connection,
              column_cleanup_mode: int = Cleanup.CASE_SENSITIVE,
              mandatory_columns: Optional[ColumnList] = None,
              dtype_conversions: Optional[StringDict] = None,
-             fillna_value: Any = None
+             fillna_values: Optional[Mapping[str, Any]] = None
              ) -> pd.DataFrame:
     with connection.cursor() as cur:
         mdx_cmd_log: str = " ".join(mdx_cmd[:120].split())
@@ -58,7 +58,7 @@ def read_mdx(connection: adodbapi.Connection,
                                  column_cleanup_mode=column_cleanup_mode,
                                  mandatory_columns=mandatory_columns,
                                  dtype_conversions=dtype_conversions,
-                                 fillna_value=fillna_value)
+                                 fillna_values=fillna_values)
         _logger.debug("dataframe created")
 
         return d_in
