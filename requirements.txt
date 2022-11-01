@@ -1,6 +1,8 @@
-setuptools<=57.5.0
+setuptools
 pandas
 numpy
 xlsxwriter
 # adodbapi
 pywin32
+build
+twine
