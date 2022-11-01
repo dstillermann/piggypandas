@@ -1,3 +1,4 @@
+# noinspection PyPackageRequirements
 import adodbapi
 import pandas as pd
 import re

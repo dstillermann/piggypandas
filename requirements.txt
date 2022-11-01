@@ -1,5 +1,6 @@
-setuptools
+setuptools<=57.5.0
 pandas
 numpy
 xlsxwriter
-adodbapi
+# adodbapi
+pywin32
