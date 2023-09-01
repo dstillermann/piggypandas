@@ -1,6 +1,7 @@
-from typing import Optional
+from typing import Optional, Union
 import datetime
 import re
+from pathlib import Path
 
 
 class DateRange:
@@ -79,4 +80,18 @@ def parse_month_range(arg: str, max_range_length: Optional[int] = None) -> DateR
             raise ValueError(f"Range may not me more than {max_range_length} days")
 
     return result
+
+
+def protected_path(f: Union[str, Path]) -> Path:
+    if not isinstance(f, Path):
+        f = Path(str(f))
+    if f.is_dir():
+        return f
+    n: int = 0
+    f_result = f
+    while f_result.is_file():
+        n += 1
+        f_result = f.with_name(f.stem + f" ({n})" + f.suffix)
+    return f_result
+
 

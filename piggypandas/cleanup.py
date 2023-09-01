@@ -1,5 +1,4 @@
-
-
+# noinspection PyClassHasNoInit
 class Cleanup:
 
     NONE: int = 0

@@ -1,8 +1,9 @@
-setuptools
-pandas
-numpy
-xlsxwriter
 # adodbapi
-pywin32
 build
+numpy
+pandas
+pywin32
+setuptools
 twine
+xlsxwriter
+openpyxl

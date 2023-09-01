@@ -1,10 +1,12 @@
 import pandas as pd
+import numpy as np
 import xlsxwriter as xls
 from pathlib import Path
-from typing import Union, List, Mapping, Optional, Tuple, Dict, Any
+from typing import Union, List, Mapping, Optional, Tuple, Dict, Any, Iterable, Set
 import re
 import logging
 import copy
+import datetime
 
 _logger = logging.getLogger('piggypandas')
 
@@ -13,6 +15,30 @@ SheetDataFrameList = List[SheetDataFrame]
 CellFormat = Mapping[str, Any]
 SheetFormat = Tuple[str, CellFormat, float]
 SheetFormatList = List[SheetFormat]
+
+
+def excelize_date_columns(data: pd.DataFrame,
+                          columns: Optional[Iterable[str]] = None,
+                          column_patterns: Optional[Iterable[str]] = None,
+                          all_date_columns: bool = False
+                          ) -> pd.DataFrame:
+    columns_to_convert: Set[str] = set()
+    if all_date_columns:
+        for c in data.columns:
+            dt = data[c].dtype
+            if dt == 'datetime64[ns]' or isinstance(dt, np.dtypes.DateTime64DType):
+                columns_to_convert.add(str(c))
+    if columns is not None:
+        columns_to_convert.update(columns)
+    if column_patterns is not None:
+        for pattern in column_patterns:
+            columns_to_convert.update([str(c) for c in data.columns if re.search(pattern, str(c), re.I)])
+
+    epoch = pd.to_datetime(datetime.date(1899, 12, 30))
+    for c in columns_to_convert:
+        data[c] = (pd.to_datetime(data[c]) - epoch).dt.days.astype('float64')
+
+    return data
 
 
 def write_dataframes(path: Union[str, Path],
