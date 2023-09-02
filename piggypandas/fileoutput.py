@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from pandas.io.formats.style import Styler
 import xlsxwriter as xls
 from pathlib import Path
 from typing import Union, List, Mapping, Optional, Tuple, Dict, Any, Iterable, Set
@@ -10,7 +11,9 @@ import datetime
 
 _logger = logging.getLogger('piggypandas')
 
-SheetDataFrame = Tuple[str, pd.DataFrame, Dict]
+
+DataFrameOrStyler = Union[pd.DataFrame, Styler]
+SheetDataFrame = Tuple[str, DataFrameOrStyler, Dict[str, Any]]
 SheetDataFrameList = List[SheetDataFrame]
 CellFormat = Mapping[str, Any]
 SheetFormat = Tuple[str, CellFormat, float]
@@ -20,7 +23,8 @@ SheetFormatList = List[SheetFormat]
 def excelize_date_columns(data: pd.DataFrame,
                           columns: Optional[Iterable[str]] = None,
                           column_patterns: Optional[Iterable[str]] = None,
-                          all_date_columns: bool = False
+                          all_date_columns: bool = False,
+                          epoch_1904: bool = False
                           ) -> pd.DataFrame:
     columns_to_convert: Set[str] = set()
     if all_date_columns:
@@ -34,7 +38,7 @@ def excelize_date_columns(data: pd.DataFrame,
         for pattern in column_patterns:
             columns_to_convert.update([str(c) for c in data.columns if re.search(pattern, str(c), re.I)])
 
-    epoch = pd.to_datetime(datetime.date(1899, 12, 30))
+    epoch = pd.to_datetime(datetime.date(1903 if epoch_1904 else 1899, 12, 30))
     for c in columns_to_convert:
         data[c] = (pd.to_datetime(data[c]) - epoch).dt.days.astype('float64')
 
@@ -45,7 +49,8 @@ def write_dataframes(path: Union[str, Path],
                      sheets: SheetDataFrameList,
                      formats: Optional[SheetFormatList] = None,
                      common_format: Optional[CellFormat] = None,
-                     header_format: Optional[CellFormat] = None
+                     header_format: Optional[CellFormat] = None,
+                     header_height: Optional[float] = None
                      ):
     file_out: Path = path if isinstance(path, Path) else Path(path)
     if file_out.suffix in ['.xls', '.xlsx']:
@@ -66,17 +71,18 @@ def write_dataframes(path: Union[str, Path],
 
             # To avoid pandas' nasty header formatting, we have to write and format the header ourselves
             # after we apply the user formats.
-            for sheet_name, df, kwargs in sheets:
+            for sheet_name, data, kwargs in sheets:
                 new_kwargs = copy.copy(kwargs)
                 new_kwargs['startrow'] = 1
                 new_kwargs['header'] = False
-                df.to_excel(writer, sheet_name=sheet_name, **new_kwargs)
+                data.to_excel(writer, sheet_name=sheet_name, **new_kwargs)
 
             # Applying the user formats.
             if formats is not None:
                 compiled_formats = [(r, _add_format(d), w) for (r, d, w) in formats]
 
-                for sheet_name, df, _ in sheets:
+                for sheet_name, data, _ in sheets:
+                    df = data.data if isinstance(data, Styler) else data
                     ws = writer.sheets[sheet_name]
                     for i in range(df.columns.size):
                         cname: str = df.columns[i]
@@ -86,9 +92,13 @@ def write_dataframes(path: Union[str, Path],
                                 break
 
             # Now is the time to write and format header.
-            for sheet_name, df, _ in sheets:
+            for sheet_name, data, _ in sheets:
+                df = data.data if isinstance(data, Styler) else data
                 ws = writer.sheets[sheet_name]
-                ws.set_row(row=0, height=48.0, cell_format=fmt_header)
+                if header_height is None:
+                    ws.set_row(row=0, cell_format=fmt_header)
+                else:
+                    ws.set_row(row=0, height=header_height, cell_format=fmt_header)
                 for i in range(df.columns.size):
                     ws.write_string(row=0, col=i, string=str(df.columns[i]), cell_format=fmt_header)
 
@@ -101,11 +111,15 @@ def write_dataframes(path: Union[str, Path],
 
 
 def write_dataframe(path: Union[str, Path],
-                    df: pd.DataFrame,
+                    data: DataFrameOrStyler,
                     sheet_name: str,
                     formats: Optional[SheetFormatList],
+                    common_format: Optional[CellFormat] = None,
+                    header_format: Optional[CellFormat] = None,
+                    header_height: Optional[float] = None,
                     **kwargs
                     ):
     write_dataframes(path=path,
-                     sheets=[(sheet_name, df, kwargs)],
-                     formats=formats)
+                     sheets=[(sheet_name, data, kwargs)],
+                     formats=formats, common_format=common_format,
+                     header_format=header_format, header_height=header_height)
