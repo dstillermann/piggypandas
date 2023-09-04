@@ -72,9 +72,11 @@ def write_dataframes(path: Union[str, Path],
             # To avoid pandas' nasty header formatting, we have to write and format the header ourselves
             # after we apply the user formats.
             for sheet_name, data, kwargs in sheets:
+                is_styler = isinstance(data, Styler)
                 new_kwargs = copy.copy(kwargs)
-                new_kwargs['startrow'] = 1
-                new_kwargs['header'] = False
+                if not is_styler:
+                    new_kwargs['startrow'] = 1
+                    new_kwargs['header'] = False
                 data.to_excel(writer, sheet_name=sheet_name, **new_kwargs)
 
             # Applying the user formats.
@@ -82,25 +84,31 @@ def write_dataframes(path: Union[str, Path],
                 compiled_formats = [(r, _add_format(d), w) for (r, d, w) in formats]
 
                 for sheet_name, data, _ in sheets:
-                    df = data.data if isinstance(data, Styler) else data
+                    is_styler = isinstance(data, Styler)
+                    df = data.data if is_styler else data
                     ws = writer.sheets[sheet_name]
                     for i in range(df.columns.size):
                         cname: str = df.columns[i]
                         for rgxp, fmt, width in compiled_formats:
                             if re.search(rgxp, cname, re.I):
-                                ws.set_column(first_col=i, last_col=i, width=width, cell_format=fmt)
+                                if is_styler:
+                                    ws.set_column(first_col=i, last_col=i, width=width)
+                                else:
+                                    ws.set_column(first_col=i, last_col=i, width=width, cell_format=fmt)
                                 break
 
             # Now is the time to write and format header.
             for sheet_name, data, _ in sheets:
-                df = data.data if isinstance(data, Styler) else data
-                ws = writer.sheets[sheet_name]
-                if header_height is None:
-                    ws.set_row(row=0, cell_format=fmt_header)
-                else:
-                    ws.set_row(row=0, height=header_height, cell_format=fmt_header)
-                for i in range(df.columns.size):
-                    ws.write_string(row=0, col=i, string=str(df.columns[i]), cell_format=fmt_header)
+                is_styler = isinstance(data, Styler)
+                if not is_styler:
+                    df = data
+                    ws = writer.sheets[sheet_name]
+                    if header_height is None:
+                        ws.set_row(row=0, cell_format=fmt_header)
+                    else:
+                        ws.set_row(row=0, height=header_height, cell_format=fmt_header)
+                    for i in range(df.columns.size):
+                        ws.write_string(row=0, col=i, string=str(df.columns[i]), cell_format=fmt_header)
 
             # used to cause close() warning due to xlsxwriter stupid logic
             # writer.save()

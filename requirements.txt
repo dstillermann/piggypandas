@@ -1,7 +1,7 @@
 # adodbapi
 build
 numpy
-pandas
+pandas >= 2.1.0
 pywin32
 setuptools
 twine
