@@ -1,3 +1,5 @@
+import os
+
 import pandas as pd
 import numpy as np
 from pandas.io.formats.style import Styler
@@ -45,21 +47,23 @@ def excelize_date_columns(data: pd.DataFrame,
     return data
 
 
-def write_dataframes(path: Union[str, Path],
+def write_dataframes(path: Union[str, Path, os.PathLike],
                      sheets: SheetDataFrameList,
                      formats: Optional[SheetFormatList] = None,
                      common_format: Optional[CellFormat] = None,
                      header_format: Optional[CellFormat] = None,
                      header_height: Optional[float] = None
                      ):
-    file_out: Path = path if isinstance(path, Path) else Path(path)
+    file_out = Path(path)
     if file_out.suffix in ['.xls', '.xlsx']:
         with pd.ExcelWriter(str(file_out), engine='xlsxwriter') as writer:
             wb: xls.Workbook = writer.book
 
             _common_format: Dict[str, Any] = dict()
+            fmt_common = None
             if common_format:
                 _common_format = dict(common_format)
+                fmt_common = wb.add_format(_common_format)
 
             def _add_format(cell_format: CellFormat) -> Any:
                 return wb.add_format(_common_format | cell_format)
@@ -80,35 +84,32 @@ def write_dataframes(path: Union[str, Path],
                 data.to_excel(writer, sheet_name=sheet_name, **new_kwargs)
 
             # Applying the user formats.
-            if formats is not None:
+            if (formats is not None) or (common_format is not None):
                 compiled_formats = [(r, _add_format(d), w) for (r, d, w) in formats]
-
                 for sheet_name, data, _ in sheets:
                     is_styler = isinstance(data, Styler)
                     df = data.data if is_styler else data
                     ws = writer.sheets[sheet_name]
                     for i in range(df.columns.size):
+                        if common_format is not None:
+                            ws.set_column(first_col=i, last_col=i, cell_format=fmt_common)
                         cname: str = df.columns[i]
                         for rgxp, fmt, width in compiled_formats:
                             if re.search(rgxp, cname, re.I):
-                                if is_styler:
-                                    ws.set_column(first_col=i, last_col=i, width=width)
-                                else:
-                                    ws.set_column(first_col=i, last_col=i, width=width, cell_format=fmt)
+                                ws.set_column(first_col=i, last_col=i, width=width, cell_format=fmt)
                                 break
 
             # Now is the time to write and format header.
             for sheet_name, data, _ in sheets:
                 is_styler = isinstance(data, Styler)
-                if not is_styler:
-                    df = data
+                if (not is_styler) or (header_format is not None) or (header_height is not None):
+                    df = data.data if is_styler else data
                     ws = writer.sheets[sheet_name]
-                    if header_height is None:
-                        ws.set_row(row=0, cell_format=fmt_header)
-                    else:
-                        ws.set_row(row=0, height=header_height, cell_format=fmt_header)
-                    for i in range(df.columns.size):
-                        ws.write_string(row=0, col=i, string=str(df.columns[i]), cell_format=fmt_header)
+                    if header_height is not None:
+                        ws.set_row(row=0, height=header_height)
+                    if (not is_styler) or header_format is not None:
+                        for i in range(df.columns.size):
+                            ws.write_string(row=0, col=i, string=str(df.columns[i]), cell_format=fmt_header)
 
             # used to cause close() warning due to xlsxwriter stupid logic
             # writer.save()
@@ -118,7 +119,7 @@ def write_dataframes(path: Union[str, Path],
         raise NotImplementedError(msg)
 
 
-def write_dataframe(path: Union[str, Path],
+def write_dataframe(path: Union[str, Path, os.PathLike],
                     data: DataFrameOrStyler,
                     sheet_name: str,
                     formats: Optional[SheetFormatList],
