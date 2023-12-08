@@ -65,8 +65,14 @@ def write_dataframes(path: Union[str, Path, os.PathLike],
                 _common_format = dict(common_format)
                 fmt_common = wb.add_format(_common_format)
 
+            options_keys = ['hidden', 'level', 'collapsed']
+
             def _add_format(cell_format: CellFormat) -> Any:
-                return wb.add_format(_common_format | cell_format)
+                _format = {k: cell_format[k] for k in cell_format.keys() if k not in options_keys}
+                return wb.add_format(_common_format | _format)
+
+            def _extract_options(cell_format: CellFormat) -> CellFormat:
+                return {k: cell_format[k] for k in options_keys if k in cell_format.keys()}
 
             if header_format:
                 fmt_header = _add_format(header_format)
@@ -85,7 +91,7 @@ def write_dataframes(path: Union[str, Path, os.PathLike],
 
             # Applying the user formats.
             if (formats is not None) or (common_format is not None):
-                compiled_formats = [(r, _add_format(d), w) for (r, d, w) in formats]
+                compiled_formats = [(r, _add_format(d), _extract_options(d), w) for (r, d, w) in formats]
                 for sheet_name, data, _ in sheets:
                     is_styler = isinstance(data, Styler)
                     df = data.data if is_styler else data
@@ -94,9 +100,9 @@ def write_dataframes(path: Union[str, Path, os.PathLike],
                         if common_format is not None:
                             ws.set_column(first_col=i, last_col=i, cell_format=fmt_common)
                         cname: str = df.columns[i]
-                        for rgxp, fmt, width in compiled_formats:
+                        for rgxp, fmt, opts, width in compiled_formats:
                             if re.search(rgxp, cname, re.I):
-                                ws.set_column(first_col=i, last_col=i, width=width, cell_format=fmt)
+                                ws.set_column(first_col=i, last_col=i, width=width, cell_format=fmt, options=opts)
                                 break
 
             # Now is the time to write and format header.
